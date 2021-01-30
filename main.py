@@ -1,6 +1,13 @@
 import random
 import pygame
 import time
+import mysql.connector
+from tkinter import *
+from tkinter import simpledialog
+
+done = 0
+score = 0
+name = ""
 
 
 class Apple(object):
@@ -33,13 +40,13 @@ class Basket(object):
 class Game:
 
     def __init__(self):
-
         self.running = True
         self.apples = []
         self.basket = Basket(350, 740)
         self.buf = 3
         self.score = 0
         self.time = time.time()
+
         pygame.init()
 
     def update(self):
@@ -102,7 +109,11 @@ class Game:
             text = font.render("Score: " + str(self.score), 1, (0, 0, 0))
             dis.blit(text, (5, 10))
 
-            if round((time.time() - self.time), 2) == 20: # quits
+            if round((time.time() - self.time), 2) >= 5:  # quits
+                global done
+                global score
+                score = self.score
+                done = 1
                 self.running = False
 
             timetext = font.render("Time: " + str(round((time.time() - self.time), 2)), 1, (0, 0, 0))
@@ -118,3 +129,44 @@ while g.running:
     g.update()
 
 pygame.quit()
+# game over
+
+if done == 1:
+    win = Tk()
+    e = Entry(win)
+    e.pack()
+
+    e.focus_set()
+
+
+    def callback():
+        global name
+        name = e.get()
+        win.destroy()
+
+
+    b = Button(win, text="OK", height=2, width=10, command=callback)
+    b.pack()
+
+    mainloop()
+
+    mydb = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        passwd="{Password}",
+        auth_plugin=' mysql_native_password',
+        database="highscores"
+    )
+    mycursor = mydb.cursor()
+    SQL = "INSERT INTO scores (name,score) VALUES (%s, %s)"
+    val = (name, int(score))
+    mycursor.execute(SQL, val)
+    mydb.commit()
+
+    stmt = "SELECT name,score FROM scores ORDER BY score DESC LIMIT 10"
+    mycursor.execute(stmt)
+    myresult = mycursor.fetchall()
+
+    for row in myresult:
+        print(row)
+exit()
